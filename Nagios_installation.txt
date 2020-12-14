@@ -1,0 +1,70 @@
+How to Install Nagios Monitoring Tool on RHEL 8
+
+yum update -y
+
+#Step 1: Install Required Dependencies
+
+dnf install -y gcc glibc glibc-common perl httpd php wget gd gd-devel
+
+systemctl start httpd
+systemctl enable httpd
+systemctl status httpd
+
+#Step 2: Downloading, Compiling and Installing Nagios Core
+
+wget -O nagioscore.tar.gz https://github.com/NagiosEnterprises/nagioscore/archive/nagios-4.4.3.tar.gz
+
+tar xzf nagioscore.tar.gz
+
+cd nagioscore-nagios-4.4.3/
+
+./configure
+make all
+
+make install-groups-users
+usermod -a -G nagios apache
+
+make install
+make install-daemoninit
+
+make install-commandmode		#installs and configures the external command file
+make install-config				#installs the *SAMPLE* configuration files.  
+make install-webconf		    #installs the Apache web server configuration files. 
+
+htpasswd -c /usr/local/nagios/etc/htpasswd.users nagiosadmin
+
+#Step 3: Installing Nagio Plugins in RHEL 8
+
+dnf install -y gcc glibc glibc-common make gettext automake autoconf wget openssl-devel net-snmp net-snmp-utils
+
+wget --no-check-certificate -O nagios-plugins.tar.gz https://github.com/nagios-plugins/nagios-plugins/archive/release-2.2.1.tar.gz
+
+tar zxf nagios-plugins.tar.gz
+
+cd nagios-plugins-release-2.2.1/
+
+./tools/setup
+./configure
+
+make
+make install
+
+systemctl restart httpd.service
+systemctl start nagios.service
+systemctl enable nagios.service
+systemctl status nagios.service
+
+firewall-cmd --permanent --zone=public --add-port=80/tcp
+
+firewall-cmd --reload
+
+sed -i 's/SELINUX=.*/SELINUX=disabled/g' /etc/selinux/config
+
+setenforce 0
+
+
+Step 4: Accessing Nagios Web Console in RHEL 8
+
+http://192.168.56.100/nagios
+OR
+http://tecmint.lan/nagios
